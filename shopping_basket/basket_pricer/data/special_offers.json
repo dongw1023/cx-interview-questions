@@ -1,0 +1,17 @@
+{
+  "Baked Beans": {
+    "name": "buy 2 get 1 free",
+    "rule": "buy $buy get $free free",
+    "kwargs": {
+      "buy": 2,
+      "free": 1
+    }
+  },
+  "Sardines": {
+    "name": "25% discount",
+    "rule": "$discount% discount",
+    "kwargs": {
+      "discount": 25
+    }
+  }
+}
