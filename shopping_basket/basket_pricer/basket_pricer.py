@@ -1,7 +1,3 @@
-import json
-from shopping_basket.basket_pricer.speical_offers import SpecialOffers
-
-
 class BasketPricer:
     def __init__(self, basket, catalogue, offers):
         self._basket = basket
@@ -21,9 +17,14 @@ class BasketPricer:
                 product_name
             )
 
-        return sub_total
+        return round(sub_total, 2)
 
     def calculate_discount(self):
+        """
+        Calculate the discount for the products
+        :return:
+        :rtype:
+        """
         discount = 0
         products_by_offer = self.products_by_offer()
 
@@ -32,12 +33,11 @@ class BasketPricer:
             products = products_by_offer.get(offer_name).get("products")
             rule_func = offer.get("func")
             discount += rule_func(
-                self._catalogue,
                 products,
                 **offer.get("kwargs"),
             )
 
-        return discount
+        return round(discount, 2)
 
     def is_product_in_basket(self, product):
         """
@@ -69,44 +69,50 @@ class BasketPricer:
 
             offer = self._offers[product_name]
             product_count = self._basket[product_name]
+            product_price = self._catalogue[product_name]
 
             if offer.get("name") not in products_by_offer:
 
                 products_by_offer[offer.get("name")] = {
                     "offer": offer,
-                    "products": [product_name] * product_count,
+                    "products": [{"name": product_name, "price": product_price}]
+                    * product_count,
                 }
             else:
                 products_by_offer[offer.get("name")]["products"] += [
-                    product_name
+                    {"name": product_name, "price": product_price}
                 ] * product_count
 
         return products_by_offer
 
+    def output_summary(self, basket=None):
+        """
+        Output summary information, such as sub-total, discount, total
+        :param basket: The basket needs to be calculate
+        :type basket: dict
+        :return: Summary information
+        :rtype: str
+        """
 
-if __name__ == "__main__":
-    with open("data/basket_2.json") as f:
-        basket = json.loads(f.read())
-    with open("data/catalogue.json") as f:
-        catalogue = json.loads(f.read())
-    with open("data/special_offers.json") as f:
-        special_offers = json.loads(f.read())
+        sub_total, discount, total = self.summary(basket)
 
-    for product in special_offers:
-        so = SpecialOffers()
-        special_offers[product]["func"] = so.get_rule_func(
-            special_offers.get(product).get("rule")
-        )
+        return f"sub-total: £{sub_total}\ndiscount: £{discount}\ntotal: £{total}"
 
-    basket_pricer = BasketPricer(basket, catalogue, special_offers)
-    sub_total = basket_pricer.calculate_sub_total_price()
-    discount = basket_pricer.calculate_discount()
-    total = sub_total - discount
+    def summary(self, basket=None):
+        """
+        Get sub-total, discount, total for the basket
+        :param basket: The basket which will be calculated
+        :type basket: dict
+        :return: sub_total, discount, total
+        :rtype: tuple
+        """
+        if basket:
+            self._basket = basket
+        sub_total = self.calculate_sub_total_price()
+        discount = self.calculate_discount()
+        total = sub_total - discount
 
-    print(
-        f"""
-    sub - total: £{sub_total}
-    discount: £{discount}
-    total: £{total}
-    """
-    )
+        if total < 0:
+            raise ValueError("The total should not be a negative value!")
+
+        return sub_total, discount, total
